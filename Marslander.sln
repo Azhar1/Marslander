@@ -3,11 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Marslander", "Marslander\Marslander.vcxproj", "{2A279672-C749-4AAC-AE54-0FD823A81E61}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Marslander - Octave Calculations", "Marslander - Octave Calculations", "{D537E57E-20DA-459A-A58E-A6D91E90487B}"
-	ProjectSection(SolutionItems) = preProject
-		..\Octave Equations\harmonious_spring.m = ..\Octave Equations\harmonious_spring.m
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32

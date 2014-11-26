@@ -10,6 +10,13 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="lander.cpp" />
+    <ClCompile Include="lander_graphics.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="lander.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2A279672-C749-4AAC-AE54-0FD823A81E61}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -77,13 +84,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\Marslander_Sourcefiles\lander.cpp" />
-    <ClCompile Include="..\..\Marslander_Sourcefiles\lander_graphics.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\Marslander_Sourcefiles\lander.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
