@@ -11,6 +11,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Calculations", "Calculation
 		Marslander\harmonious_spring.m = Marslander\harmonious_spring.m
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Resources", "Resources", "{0FE64B6E-7B2D-4D38-8A37-009B2D0D062E}"
+	ProjectSection(SolutionItems) = preProject
+		Resources\Getting Started in Microsoft Windows.docx = Resources\Getting Started in Microsoft Windows.docx
+		Resources\glut-3.7.6-bin.rar = Resources\glut-3.7.6-bin.rar
+		Resources\lander details.pdf = Resources\lander details.pdf
+		Resources\lander.rar = Resources\lander.rar
+		Resources\missing formula.bmp = Resources\missing formula.bmp
+		Resources\shinewan.txt = Resources\shinewan.txt
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
