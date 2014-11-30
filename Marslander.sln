@@ -5,6 +5,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Marslander", "Marslander\Ma
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Calculations", "Calculations", "{93D0C1C6-9ACD-444D-BD14-961B09916EFF}"
 	ProjectSection(SolutionItems) = preProject
+		Marslander\Assignment_1.2.m = Marslander\Assignment_1.2.m
 		Marslander\harmonious_spring.m = Marslander\harmonious_spring.m
 	EndProjectSection
 EndProject
