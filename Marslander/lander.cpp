@@ -23,6 +23,38 @@ void numerical_dynamics (void)
   // lander's pose. The time step is delta_t (global variable).
 {
   // INSERT YOUR CODE HERE
+	//double distance = sqrt(pow(position.x, 2.0)+ pow(position.y, 2.0)+ pow(position.z, 2.0));
+	double g_acc_x = 0;
+	double g_acc_y = 0;
+	double g_acc_z = 0;
+	
+	if (position.x != 0)
+		g_acc_x = GRAVITY*MARS_MASS / (position.x*position.x);
+
+	if (position.y!=0)
+		g_acc_y = GRAVITY*MARS_MASS / (position.y*position.y);
+
+	if (position.z!=0)
+		g_acc_z = GRAVITY*MARS_MASS / (position.z*position.z);
+
+	if (position.x > 0)
+		velocity.x = velocity.x - g_acc_x * delta_t;
+	else
+		velocity.x = velocity.x + g_acc_x * delta_t;
+
+	if (position.y > 0)
+		velocity.y = velocity.y - g_acc_y * delta_t;
+	else
+		velocity.y = velocity.y + g_acc_y * delta_t;
+
+	if (position.z > 0)
+		velocity.z = velocity.z - g_acc_z * delta_t;
+	else
+		velocity.z = velocity.z + g_acc_z * delta_t;
+	
+	position.x += velocity.x*delta_t;
+	position.y += velocity.y*delta_t;
+	position.z += velocity.z*delta_t;
 
   // Here we can apply an autopilot to adjust the thrust, parachute and attitude
   if (autopilot_enabled) autopilot();

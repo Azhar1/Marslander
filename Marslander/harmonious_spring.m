@@ -35,7 +35,7 @@ for i= 1:iterations
 end
 
 %plot Euler
-plot(t_euler,[x_euler,v_euler],'-');
+%plot(t_euler,[x_euler,v_euler],'-');
 
 %reset variables%physical variables
 mass = 20						%kg

@@ -555,7 +555,7 @@ void draw_dial (double cx, double cy, double val, string title, string units)
     a = 0.0;
   } else {
     e = 0;
-    a = val;
+    a = 1000000000000;
     while (a >= 10.0) {
       e++;
       a /= 10.0;
