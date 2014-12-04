@@ -23,38 +23,78 @@ void numerical_dynamics (void)
   // lander's pose. The time step is delta_t (global variable).
 {
   // INSERT YOUR CODE HERE
-	//double distance = sqrt(pow(position.x, 2.0)+ pow(position.y, 2.0)+ pow(position.z, 2.0));
-	double g_acc_x = 0;
-	double g_acc_y = 0;
-	double g_acc_z = 0;
+	double lander_mass = fuel*FUEL_CAPACITY*FUEL_DENSITY + UNLOADED_LANDER_MASS;
 	
-	if (position.x != 0)
-		g_acc_x = GRAVITY*MARS_MASS / (position.x*position.x);
+	//get the force acting on the lander through gravity
+	vector3d gravitational_acceleration = (-GRAVITY*MARS_MASS / (position.abs2()))*position.norm();
+	vector3d gravitational_force = gravitational_acceleration*lander_mass;
 
-	if (position.y!=0)
-		g_acc_y = GRAVITY*MARS_MASS / (position.y*position.y);
-
-	if (position.z!=0)
-		g_acc_z = GRAVITY*MARS_MASS / (position.z*position.z);
-
-	if (position.x > 0)
-		velocity.x = velocity.x - g_acc_x * delta_t;
-	else
-		velocity.x = velocity.x + g_acc_x * delta_t;
-
-	if (position.y > 0)
-		velocity.y = velocity.y - g_acc_y * delta_t;
-	else
-		velocity.y = velocity.y + g_acc_y * delta_t;
-
-	if (position.z > 0)
-		velocity.z = velocity.z - g_acc_z * delta_t;
-	else
-		velocity.z = velocity.z + g_acc_z * delta_t;
+	//get the force acting on the lander through atmospheric drag
+	vector3d atmospheric_drag_force = ((-0.5)*DRAG_COEF_LANDER*((pow(LANDER_SIZE, 2)*3.16) / 2)*atmospheric_density(position)*velocity.abs2())*velocity.norm();
+	vector3d atmospheric_drag_force_parachute = ((-0.5)*DRAG_COEF_CHUTE*((pow(LANDER_SIZE, 2)*3.16) / 2)*atmospheric_density(position)*velocity.abs2())*velocity.norm();
+	if 
+	(
+		parachute_status == DEPLOYED && 
+		(
+		atmospheric_drag_force_parachute.abs() > MAX_PARACHUTE_DRAG ||
+		velocity.abs()>MAX_PARACHUTE_SPEED
+		)
+	)
+		parachute_status = LOST;
 	
-	position.x += velocity.x*delta_t;
-	position.y += velocity.y*delta_t;
-	position.z += velocity.z*delta_t;
+
+	//get the force acting on the lander through thrust
+	vector3d thruster_force = (throttle*MAX_THRUST)*thrust_wrt_world().norm();
+
+	//sum up resulting forces
+	vector3d resulting_force = atmospheric_drag_force + gravitational_force;
+	if (fuel > 0)
+		resulting_force += thruster_force;
+	if (parachute_status == DEPLOYED)
+		resulting_force += atmospheric_drag_force_parachute;
+
+	//sum up resulting acceleration
+	vector3d resulting_acceleration = resulting_force / lander_mass;
+
+	//update position through verlet
+	position += delta_t*(velocity + (delta_t*resulting_acceleration*0.5));
+
+	//recalculate acceleration
+	gravitational_acceleration = (-GRAVITY*MARS_MASS / (position.abs2()))*position.norm();
+	gravitational_force = gravitational_acceleration*lander_mass;
+	atmospheric_drag_force = ((-0.5)*DRAG_COEF_LANDER*((pow(LANDER_SIZE, 2)*3.16) / 2)*atmospheric_density(position)*velocity.abs2())*velocity.norm();
+	atmospheric_drag_force_parachute = ((-0.5)*DRAG_COEF_CHUTE*((pow(LANDER_SIZE, 2)*3.16) / 2)*atmospheric_density(position)*velocity.abs2())*velocity.norm();
+	thruster_force = (throttle*MAX_THRUST)*thrust_wrt_world().norm();
+	if
+	(
+		parachute_status == DEPLOYED &&
+		(
+			atmospheric_drag_force_parachute.abs() > MAX_PARACHUTE_DRAG ||
+			velocity.abs()>MAX_PARACHUTE_SPEED
+		)
+	)
+		parachute_status = LOST;
+
+	if (fuel > 0)
+		resulting_force += thruster_force;
+	if (parachute_status == DEPLOYED)
+		resulting_force += atmospheric_drag_force_parachute;
+
+	vector3d resulting_acceleration_new = resulting_force / lander_mass;
+
+	//update velocity through verlet
+	velocity += delta_t*(resulting_acceleration + resulting_acceleration_new)*0.5;
+
+	if
+	(
+		parachute_status == DEPLOYED &&
+		(
+			atmospheric_drag_force_parachute.abs() > MAX_PARACHUTE_DRAG ||
+			velocity.abs()>MAX_PARACHUTE_SPEED
+		)
+	)
+		parachute_status = LOST;
+
 
   // Here we can apply an autopilot to adjust the thrust, parachute and attitude
   if (autopilot_enabled) autopilot();
