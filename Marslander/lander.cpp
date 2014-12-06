@@ -12,6 +12,8 @@
 
 #include "lander.h"
 
+double const PI = 3.14159265;
+
 //autopilot variables
 enum phases { Reach_7000_400, FINAL_DESCENT };
 phases phase = Reach_7000_400;
@@ -73,8 +75,10 @@ void autopilot(void)
 			}
 			if (!initialized_mid_descent)
 				break;
-			if (fuel < 8)
+			if (fuel < 0.08){
+				throttle = 0;
 				break;
+			}
 			double current_target_rate = rate_of_descent_change*(altitude_measurement-8000) - 200;
 			double error = climb_rate - current_target_rate;
 			//negative error: use thruster
@@ -170,7 +174,7 @@ void numerical_dynamics (void)
 	//recalculate acceleration
 	gravitational_acceleration = (-GRAVITY*MARS_MASS / (position.abs2()))*position.norm();
 	gravitational_force = gravitational_acceleration*lander_mass;
-	atmospheric_drag_force = ((-0.5)*DRAG_COEF_LANDER*((pow(LANDER_SIZE, 2)*3.16) / 2)*atmospheric_density(position)*velocity.abs2())*velocity.norm();
+	atmospheric_drag_force = ((-0.5)*DRAG_COEF_LANDER*((pow(LANDER_SIZE, 2)*PI) / 2)*atmospheric_density(position)*velocity.abs2())*velocity.norm();
 	atmospheric_drag_force_parachute = -0.5*DRAG_COEF_CHUTE*atmospheric_density(position)*5.0*2.0*LANDER_SIZE*2.0*LANDER_SIZE*velocity.abs2()*velocity.norm();
 	if
 	(
@@ -226,7 +230,7 @@ void initialize_simulation (void)
   scenario_description[3] = "polar launch at escape velocity (but drag prevents escape)";
   scenario_description[4] = "elliptical orbit that clips the atmosphere and decays";
   scenario_description[5] = "descent from 200km";
-  scenario_description[6] = "";
+  scenario_description[6] = "geostationary orbit";
   scenario_description[7] = "";
   scenario_description[8] = "";
   scenario_description[9] = "";
@@ -312,6 +316,20 @@ void initialize_simulation (void)
 	break;
 
   case 6:
+	{
+			double mars_omega = 2.0 * PI / MARS_DAY;
+			double distance_geostat = pow(GRAVITY*MARS_MASS / pow(mars_omega, 2.0), 1.0 / 3.0);
+			double speed_geostat = mars_omega*distance_geostat;
+			position = vector3d(distance_geostat, 0.0, 0.0);
+			velocity = vector3d(0.0, speed_geostat, 0.0);
+			delta_t = 0.1;
+			parachute_status = NOT_DEPLOYED;
+			stabilized_attitude = false;
+			autopilot_enabled = false;
+
+			initialize_variables();
+			break;
+	}
     break;
 
   case 7:
