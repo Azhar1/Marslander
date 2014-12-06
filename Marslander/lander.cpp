@@ -12,10 +12,118 @@
 
 #include "lander.h"
 
-void autopilot (void)
-  // Autopilot to adjust the engine throttle, parachute and attitude control
+//autopilot variables
+enum phases { Reach_7000_400, FINAL_DESCENT };
+phases phase = Reach_7000_400;
+double rate_of_descent_change = 1;
+double target_rate_of_desent = -0.5;
+double climb_rate = 1;
+double altitude_measurement=-1;
+bool initialized_final_descent = false;
+bool initialized_mid_descent = false;
+
+void initialize_variables(void){
+	phase = Reach_7000_400;
+	rate_of_descent_change = 1;
+	target_rate_of_desent = -0.5;
+	climb_rate = 1;
+	altitude_measurement = -1;
+	initialized_final_descent = false;
+	initialized_mid_descent = false;
+}
+
+void autopilot(void)
+// Autopilot to adjust the engine throttle, parachute and attitude control
 {
-  // INSERT YOUR CODE HERE
+	// INSERT YOUR CODE HERE
+	// Assignment 6 - Autopilot only vertical landing from 10 km
+	// Adapted approach for fuelsaving: Use thruster to came down to 300 m/s at 6500m altitude
+	// Then deploy parachute and use thruster to reach 100 m/s at 2000m altitude
+	// Then use thruster to reach 0.5m/s at 0m altitude
+
+	//linear decrease:
+	//-0.5+h*dr
+	//dr=-0.5/h
+	//error=-0.5/h-d
+
+	double old = altitude_measurement;
+	if (old <0)
+		old = position.abs() - MARS_RADIUS;
+	altitude_measurement = position.abs() - MARS_RADIUS;
+	climb_rate = (altitude_measurement - old)/delta_t;
+
+	//deploy parachute under 7k and 400 m\s
+	if (safe_to_deploy_parachute()&&altitude_measurement<50000&&climb_rate<0){
+		if (parachute_status == NOT_DEPLOYED)
+		{
+			parachute_status = DEPLOYED;
+			phase = FINAL_DESCENT;
+			//rate_of_descent_change = 1;
+			throttle = 0;
+		}
+	}
+
+	switch (phase)
+	{
+		case Reach_7000_400:
+		{
+			if (initialized_mid_descent == false&&climb_rate < -250 && altitude_measurement < 260000){
+				rate_of_descent_change = (climb_rate + 200) / (altitude_measurement-8000);
+				initialized_mid_descent = true;
+			}
+			if (!initialized_mid_descent)
+				break;
+			if (fuel < 8)
+				break;
+			double current_target_rate = rate_of_descent_change*(altitude_measurement-8000) - 200;
+			double error = climb_rate - current_target_rate;
+			//negative error: use thruster
+			if (error < 0){
+				//100 m\s = full thrust
+				//gain: -0.1 below 40, -100 above 4000,
+				double gain = -100;
+				double temp_throttle = error / gain;
+				if (temp_throttle>1)
+					temp_throttle = 1;
+				throttle = temp_throttle;
+			}
+			else{
+				throttle = 0;
+			}	
+		}
+		break;
+		case FINAL_DESCENT:
+		{
+			if (initialized_final_descent==false&&climb_rate < 0&&altitude_measurement<400){
+				rate_of_descent_change = (climb_rate - target_rate_of_desent) / altitude_measurement;
+				initialized_final_descent = true;
+			}
+			if (!initialized_final_descent)
+				break;
+			double current_target_rate = rate_of_descent_change*altitude_measurement - 0.1;
+			double error = climb_rate - current_target_rate;
+			//negative error: use thruster
+			if (error < 0){
+				//100 m\s = full thrust
+				//gain: -0.1 below 40, -100 above 4000,
+				double gain = -0.025*altitude_measurement;
+				if (gain<-100)
+					gain = -100;
+				if (gain>-1)
+					gain = -1;
+				double temp_throttle = error / gain;
+				if (temp_throttle>1)
+					temp_throttle = 1;
+				throttle = temp_throttle;
+			}
+			else{
+				throttle = 0;
+			}
+		}
+		break;
+		default:
+			break;
+	}
 }
 
 void numerical_dynamics (void)
@@ -63,8 +171,7 @@ void numerical_dynamics (void)
 	gravitational_acceleration = (-GRAVITY*MARS_MASS / (position.abs2()))*position.norm();
 	gravitational_force = gravitational_acceleration*lander_mass;
 	atmospheric_drag_force = ((-0.5)*DRAG_COEF_LANDER*((pow(LANDER_SIZE, 2)*3.16) / 2)*atmospheric_density(position)*velocity.abs2())*velocity.norm();
-	atmospheric_drag_force_parachute = ((-0.5)*DRAG_COEF_CHUTE*((pow(LANDER_SIZE, 2)*3.16) / 2)*atmospheric_density(position)*velocity.abs2())*velocity.norm();
-	thruster_force = (throttle*MAX_THRUST)*thrust_wrt_world().norm();
+	atmospheric_drag_force_parachute = -0.5*DRAG_COEF_CHUTE*atmospheric_density(position)*5.0*2.0*LANDER_SIZE*2.0*LANDER_SIZE*velocity.abs2()*velocity.norm();
 	if
 	(
 		parachute_status == DEPLOYED &&
@@ -94,7 +201,6 @@ void numerical_dynamics (void)
 		)
 	)
 		parachute_status = LOST;
-
 
   // Here we can apply an autopilot to adjust the thrust, parachute and attitude
   if (autopilot_enabled) autopilot();
@@ -136,6 +242,8 @@ void initialize_simulation (void)
     parachute_status = NOT_DEPLOYED;
     stabilized_attitude = false;
     autopilot_enabled = false;
+
+	initialize_variables();
     break;
 
   case 1:
@@ -147,7 +255,9 @@ void initialize_simulation (void)
     parachute_status = NOT_DEPLOYED;
     stabilized_attitude = true;
     autopilot_enabled = false;
-    break;
+    
+	initialize_variables();
+	break;
 
   case 2:
     // an elliptical polar orbit
@@ -158,7 +268,9 @@ void initialize_simulation (void)
     parachute_status = NOT_DEPLOYED;
     stabilized_attitude = false;
     autopilot_enabled = false;
-    break;
+
+	initialize_variables();
+	break;
 
   case 3:
     // polar surface launch at escape velocity (but drag prevents escape)
@@ -169,7 +281,9 @@ void initialize_simulation (void)
     parachute_status = NOT_DEPLOYED;
     stabilized_attitude = false;
     autopilot_enabled = false;
-    break;
+    
+	initialize_variables();
+	break;
 
   case 4:
     // an elliptical orbit that clips the atmosphere each time round, losing energy
@@ -180,7 +294,9 @@ void initialize_simulation (void)
     parachute_status = NOT_DEPLOYED;
     stabilized_attitude = false;
     autopilot_enabled = false;
-    break;
+
+	initialize_variables();
+	break;
 
   case 5:
     // a descent from rest at the edge of the exosphere
@@ -191,7 +307,9 @@ void initialize_simulation (void)
     parachute_status = NOT_DEPLOYED;
     stabilized_attitude = true;
     autopilot_enabled = false;
-    break;
+    
+	initialize_variables();
+	break;
 
   case 6:
     break;
