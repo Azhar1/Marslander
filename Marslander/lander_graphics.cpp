@@ -2220,7 +2220,11 @@ int main (int argc, char* argv[])
   glutIdleFunc(update_lander_state);
   glutKeyboardFunc(glut_key);
   glutSpecialFunc(glut_special);
-  load_obj("C:\\Users\\training\\Documents\\test.obj");
+
+  // Load the obj file
+  load_obj("test.obj");
+  
+  
   // The close-up view subwindow
   closeup_window = glutCreateSubWindow(main_window, GAP, GAP, view_width, view_height);
   glDrawBuffer(GL_BACK);
