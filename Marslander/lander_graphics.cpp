@@ -74,6 +74,7 @@
 
 #define DECLARE_GLOBAL_VARIABLES
 #include "lander.h"
+#include <vector>
 
 void invert (double m[], double mout[])
   // Inverts a 4x4 OpenGL rotation matrix
@@ -971,7 +972,9 @@ int load_obj(char* filename)
 					&vertexBuffer[TotalConnectedPoints],
 					&vertexBuffer[TotalConnectedPoints + 1],
 					&vertexBuffer[TotalConnectedPoints + 2]);
-
+				vertexBuffer[TotalConnectedPoints] *= MARS_RADIUS;
+				vertexBuffer[TotalConnectedPoints + 1] *= MARS_RADIUS;
+				vertexBuffer[TotalConnectedPoints + 2] *= MARS_RADIUS;
 				TotalConnectedPoints += POINTS_PER_VERTEX;// Add 3 to the total connected points
 			}
 			if (line.c_str()[0] == 'f')// The first character is an 'f': on this line is a point stored
@@ -1037,7 +1040,7 @@ int load_obj(char* filename)
 
 void draw_obj()
 {
-
+	std::vector<float> test(Faces_Triangles, Faces_Triangles + TotalConnectedTriangles);
 	glEnableClientState(GL_VERTEX_ARRAY);// Enable vertex arrays
 	glEnableClientState(GL_NORMAL_ARRAY);// Enable normal arrays
 	glVertexPointer(3, GL_FLOAT, 0, Faces_Triangles);// Vertex Pointer to triangle array
