@@ -76,8 +76,8 @@
 #define FUEL_DENSITY 1.0 // (kg/l)
 // MAX_THRUST, as defined below, is 1.5 * weight of fully loaded lander at surface
 #define MAX_THRUST (1.5 * (FUEL_DENSITY*FUEL_CAPACITY+UNLOADED_LANDER_MASS) * (GRAVITY*MARS_MASS/(MARS_RADIUS*MARS_RADIUS))) // (N)
-#define ENGINE_LAG 0.0 // (s)
-#define ENGINE_DELAY 0.0 // (s)
+#define ENGINE_LAG 0.5 // (s)
+#define ENGINE_DELAY 0.5 // (s)
 #define DRAG_COEF_CHUTE 2.0
 #define DRAG_COEF_LANDER 1.0
 #define MAX_PARACHUTE_DRAG 20000.0 // (N)
@@ -85,6 +85,7 @@
 #define THROTTLE_GRANULARITY 20 // for manual control
 #define MAX_IMPACT_GROUND_SPEED 1.0 // (m/s)
 #define MAX_IMPACT_DESCENT_RATE 1.0 // (m/s)
+#define LANDER_ROTATION_SPEED 90 // (grad/s)
 
 using namespace std;
 
@@ -250,3 +251,4 @@ void closeup_mouse_button (int button, int state, int x, int y);
 void closeup_mouse_motion (int x, int y);
 void glut_special (int key, int x, int y);
 void glut_key (unsigned char k, int x, int y);
+double get_ground_speed(void);

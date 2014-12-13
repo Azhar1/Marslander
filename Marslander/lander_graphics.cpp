@@ -1512,6 +1512,10 @@ bool safe_to_deploy_parachute (void)
   else return true;
 }
 
+double get_ground_speed(void){
+	return ground_speed;
+}
+
 void update_visualization (void)
   // The visualization part of the idle function. Re-estimates altitude, velocity, climb speed and ground
   // speed from current and previous positions. Updates throttle and fuel levels, then redraws all subwindows.
@@ -1577,7 +1581,7 @@ void update_visualization (void)
   refresh_all_subwindows();
 }
 
-void attitude_stabilization (void)
+void attitude_stabilization (void) //(void)
   // Three-axis stabilization to ensure the lander's base is always pointing downwards 
 {
   vector3d up, left, out;
@@ -1593,6 +1597,13 @@ void attitude_stabilization (void)
   // an axis perpendicular to the plane of the close-up view. This axis is given by the
   // vector product of "up"and "closeup_coords.right". To calculate the result of the
   // rotation, search the internet for information on the axis-angle rotation formula.
+
+  ////ROTATION
+  vector3d rotationaxis = (closeup_coords.right^up).norm();
+  //Rodrigues' rotation formula
+  double rad = stabilized_attitude_angle*3.1617 / 180;
+  up = (cos(rad)*up) + (sin(rad)*(rotationaxis^up)) + ((1 - cos(rad))*(rotationaxis*up)*rotationaxis);
+  ////END ROTATION
 
   // Set left to something perpendicular to up
   left.x = -up.y; left.y = up.x; left.z = 0.0;
@@ -2055,6 +2066,17 @@ void glut_key (unsigned char k, int x, int y)
     paused = true;
     break;
 
+  case 'x':
+	  stabilized_attitude_angle += LANDER_ROTATION_SPEED*delta_t;
+	  stabilized_attitude_angle = stabilized_attitude_angle > 360.0 ? stabilized_attitude_angle - 360.0 : stabilized_attitude_angle;
+	  if (paused) refresh_all_subwindows();
+	  break;
+
+  case 'z':
+	  stabilized_attitude_angle -= LANDER_ROTATION_SPEED*delta_t;
+	  stabilized_attitude_angle = stabilized_attitude_angle < -360.0 ? stabilized_attitude_angle + 360.0 : stabilized_attitude_angle;
+	  if (paused) refresh_all_subwindows();
+	  break;
   }
 }
 
