@@ -1040,7 +1040,6 @@ int load_obj(char* filename)
 
 void draw_obj()
 {
-	std::vector<float> test(Faces_Triangles, Faces_Triangles + TotalConnectedTriangles);
 	glEnableClientState(GL_VERTEX_ARRAY);// Enable vertex arrays
 	glEnableClientState(GL_NORMAL_ARRAY);// Enable normal arrays
 	glVertexPointer(3, GL_FLOAT, 0, Faces_Triangles);// Vertex Pointer to triangle array
@@ -1095,6 +1094,7 @@ void draw_orbital_window (void)
   gluSphere(quadObj, MARS_RADIUS, slices, stacks);
   glPopMatrix();
 #else
+  glColor3f(0.63, 0.33, 0.22);
   draw_obj();
 #endif
   // Draw previous lander positions in cyan that fades with time
@@ -1404,7 +1404,7 @@ void draw_closeup_window (void)
     glTexCoord2f(0.5 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(0.0, -altitude, ground_plane_size);
     glTexCoord2f(0.5 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(0.0, -altitude, 0.0);      
     glTexCoord2f(0.0 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(-ground_plane_size, -altitude, 0.0);
-    glTexCoord2f(0.0 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(-ground_plane_size, -altitude, ground_plane_size);
+	glTexCoord2f(0.0 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(-ground_plane_size, -altitude, ground_plane_size);
     glEnd();
     glPopMatrix();
     glDisable(GL_TEXTURE_2D);
@@ -1487,6 +1487,7 @@ void draw_closeup_window (void)
       glTranslated(0.0, -MARS_RADIUS, 0.0);
       glMultMatrixd(m2); // now in the planetary coordinate system
       glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the planet spin
+	  //draw_obj();
       glutMottledSphere(MARS_RADIUS * (MARS_RADIUS / (altitude + MARS_RADIUS)), 160, 100);
 
     } else {
@@ -1495,7 +1496,8 @@ void draw_closeup_window (void)
       glTranslated(0.0, -(MARS_RADIUS + altitude), 0.0);
       glMultMatrixd(m2); // now in the planetary coordinate system
       glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the planet spin
-      glutMottledSphere(MARS_RADIUS, 160, 100);
+      //glutSolidSphere(MARS_RADIUS, 160, 100);
+	  draw_obj();
 
     }
 
