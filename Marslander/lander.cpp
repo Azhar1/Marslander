@@ -237,6 +237,8 @@ void numerical_dynamics (void)
 	//get the force acting on the lander through thrust
 	vector3d thruster_force = (throttle*MAX_THRUST)*thrust_wrt_world().norm();
 
+	//generate wind force
+
 	//sum up resulting forces
 	vector3d resulting_force = atmospheric_drag_force + gravitational_force;
 	if (fuel > 0)
