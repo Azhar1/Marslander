@@ -74,6 +74,7 @@
 
 #define DECLARE_GLOBAL_VARIABLES
 #include "lander.h"
+#include <vector>
 
 void invert (double m[], double mout[])
   // Inverts a 4x4 OpenGL rotation matrix
@@ -913,6 +914,141 @@ void display_help_prompt (void)
   glPopMatrix();
 }
 
+std::vector<float> calculateNormal(float *coord1, float *coord2, float *coord3)
+{
+	/* calculate Vector1 and Vector2 */
+	float va[3], vb[3], vr[3], val;
+	va[0] = coord1[0] - coord2[0];
+	va[1] = coord1[1] - coord2[1];
+	va[2] = coord1[2] - coord2[2];
+
+	vb[0] = coord1[0] - coord3[0];
+	vb[1] = coord1[1] - coord3[1];
+	vb[2] = coord1[2] - coord3[2];
+
+	/* cross product */
+	vr[0] = va[1] * vb[2] - vb[1] * va[2];
+	vr[1] = vb[0] * va[2] - va[0] * vb[2];
+	vr[2] = va[0] * vb[1] - vb[0] * va[1];
+
+	/* normalization factor */
+	val = sqrt(vr[0] * vr[0] + vr[1] * vr[1] + vr[2] * vr[2]);
+
+	std::vector<float> norm(3);
+	norm[0] = vr[0] / val;
+	norm[1] = vr[1] / val;
+	norm[2] = vr[2] / val;
+
+
+	return norm;
+}
+
+int load_obj(char* filename)
+{
+	string line;
+	ifstream objFile(filename);
+	if (objFile.is_open())// If obj file is open, continue
+	{
+		objFile.seekg(0, ios::end);// Go to end of the file,
+		long fileSize = objFile.tellg();// get file size
+		objFile.seekg(0, ios::beg);// we'll use this to register memory for our 3d model
+
+		vertexBuffer = (float*)malloc(fileSize);// Allocate memory for the verteces
+		Faces_Triangles = (float*)malloc(fileSize*sizeof(float));// Allocate memory for the triangles
+		normals = (float*)malloc(fileSize*sizeof(float));// Allocate memory for the normals
+
+		int triangle_index = 0;// Set triangle index to zero
+		int normal_index = 0;// Set normal index to zero
+
+		while (!objFile.eof())// Start reading file data
+		{
+			getline(objFile, line);// Get line from file
+
+			if (line.c_str()[0] == 'v')// The first character is a v: on this line is a vertex stored.
+			{
+				line[0] = ' ';// Set first character to 0. This will allow us to use sscanf
+
+				sscanf_s(line.c_str(), "%f %f %f ",// Read floats from the line: v X Y Z
+					&vertexBuffer[TotalConnectedPoints],
+					&vertexBuffer[TotalConnectedPoints + 1],
+					&vertexBuffer[TotalConnectedPoints + 2]);
+				vertexBuffer[TotalConnectedPoints] *= MARS_RADIUS;
+				vertexBuffer[TotalConnectedPoints + 1] *= MARS_RADIUS;
+				vertexBuffer[TotalConnectedPoints + 2] *= MARS_RADIUS;
+				TotalConnectedPoints += POINTS_PER_VERTEX;// Add 3 to the total connected points
+			}
+			if (line.c_str()[0] == 'f')// The first character is an 'f': on this line is a point stored
+			{
+				line[0] = ' ';// Set first character to 0. This will allow us to use sscanf
+
+				int vertexNumber[4] = { 0, 0, 0 };
+				sscanf_s(line.c_str(), "%i%i%i",// Read integers from the line:  f 1 2 3
+					&vertexNumber[0],// First point of our triangle. This is an
+					&vertexNumber[1],// pointer to our vertexBuffer list
+					&vertexNumber[2]);// each point represents an X,Y,Z.
+
+				vertexNumber[0] -= 1;// OBJ file starts counting from 1
+				vertexNumber[1] -= 1;// OBJ file starts counting from 1
+				vertexNumber[2] -= 1;// OBJ file starts counting from 1
+
+
+				/********************************************************************
+				* Create triangles (f 1 2 3) from points: (v X Y Z) (v X Y Z) (v X Y Z).
+				* The vertexBuffer contains all verteces
+				* The triangles will be created using the verteces we read previously
+				*/
+
+				int tCounter = 0;
+				for (int i = 0; i < POINTS_PER_VERTEX; i++)
+				{
+					Faces_Triangles[triangle_index + tCounter] = vertexBuffer[3 * vertexNumber[i]];
+					Faces_Triangles[triangle_index + tCounter + 1] = vertexBuffer[3 * vertexNumber[i] + 1];
+					Faces_Triangles[triangle_index + tCounter + 2] = vertexBuffer[3 * vertexNumber[i] + 2];
+					tCounter += POINTS_PER_VERTEX;
+				}
+
+				/*********************************************************************
+				* Calculate all normals, used for lighting
+				*/
+				float coord1[3] = { Faces_Triangles[triangle_index], Faces_Triangles[triangle_index + 1], Faces_Triangles[triangle_index + 2] };
+				float coord2[3] = { Faces_Triangles[triangle_index + 3], Faces_Triangles[triangle_index + 4], Faces_Triangles[triangle_index + 5] };
+				float coord3[3] = { Faces_Triangles[triangle_index + 6], Faces_Triangles[triangle_index + 7], Faces_Triangles[triangle_index + 8] };
+				std::vector<float> norm = calculateNormal(coord1, coord2, coord3);
+
+				tCounter = 0;
+				for (int i = 0; i < POINTS_PER_VERTEX; i++)
+				{
+					normals[normal_index + tCounter] = norm[0];
+					normals[normal_index + tCounter + 1] = norm[1];
+					normals[normal_index + tCounter + 2] = norm[2];
+					tCounter += POINTS_PER_VERTEX;
+				}
+
+				triangle_index += TOTAL_FLOATS_IN_TRIANGLE;
+				normal_index += TOTAL_FLOATS_IN_TRIANGLE;
+				TotalConnectedTriangles += TOTAL_FLOATS_IN_TRIANGLE;
+			}
+		}
+		objFile.close();// Close OBJ file
+	}
+	else
+	{
+		cout << "Unable to open file";
+	}
+	return 0;
+}
+
+void draw_obj()
+{
+	glEnableClientState(GL_VERTEX_ARRAY);// Enable vertex arrays
+	glEnableClientState(GL_NORMAL_ARRAY);// Enable normal arrays
+	glVertexPointer(3, GL_FLOAT, 0, Faces_Triangles);// Vertex Pointer to triangle array
+	glNormalPointer(GL_FLOAT, 0, normals);// Normal pointer to normal array
+	glDrawArrays(GL_TRIANGLES, 0, TotalConnectedTriangles);// Draw the triangles
+	glDisableClientState(GL_VERTEX_ARRAY);// Disable vertex arrays
+	glDisableClientState(GL_NORMAL_ARRAY);// Disable normal arrays
+}
+
 void draw_orbital_window (void)
   // Draws the orbital view
 {
@@ -940,6 +1076,7 @@ void draw_orbital_window (void)
   }
 
   // Draw planet
+#if 0
   glColor3f(0.63, 0.33, 0.22);
   glLineWidth(1.0);
   glPushMatrix();
@@ -956,7 +1093,11 @@ void draw_orbital_window (void)
   gluQuadricDrawStyle(quadObj, GLU_LINE);
   gluSphere(quadObj, MARS_RADIUS, slices, stacks);
   glPopMatrix();
-
+#else
+  glColor3f(0.63, 0.33, 0.22);
+  glRotated(360.0*simulation_time / MARS_DAY, 0.0, 0.0, 1.0);
+  draw_obj();
+#endif
   // Draw previous lander positions in cyan that fades with time
   glDisable(GL_LIGHTING);
   glEnable(GL_BLEND);
@@ -1245,10 +1386,11 @@ void draw_closeup_window (void)
     // nearby, to get the fog calculations correct in all OpenGL implementations.
     glBindTexture(GL_TEXTURE_2D, terrain_texture);
     if (do_texture) glEnable(GL_TEXTURE_2D);
-    glNormal3d(0.0, 1.0, 0.0);
+	glNormal3d(0.0, 1.0, 0.0);
     glPushMatrix();
     glRotated(terrain_angle, 0.0, 1.0, 0.0);
     glBegin(GL_QUADS);
+	draw_obj();
     glTexCoord2f(1.0 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(ground_plane_size, -altitude, ground_plane_size);      
     glTexCoord2f(1.0 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(ground_plane_size, -altitude, 0.0);
     glTexCoord2f(0.5 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(0.0, -altitude, 0.0);      
@@ -1264,9 +1406,10 @@ void draw_closeup_window (void)
     glTexCoord2f(0.5 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(0.0, -altitude, ground_plane_size);
     glTexCoord2f(0.5 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(0.0, -altitude, 0.0);      
     glTexCoord2f(0.0 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(-ground_plane_size, -altitude, 0.0);
-    glTexCoord2f(0.0 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(-ground_plane_size, -altitude, ground_plane_size);
+	glTexCoord2f(0.0 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(-ground_plane_size, -altitude, ground_plane_size);
     glEnd();
     glPopMatrix();
+//	draw_obj();
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
 
@@ -1347,6 +1490,7 @@ void draw_closeup_window (void)
       glTranslated(0.0, -MARS_RADIUS, 0.0);
       glMultMatrixd(m2); // now in the planetary coordinate system
       glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the planet spin
+	  //draw_obj();
       glutMottledSphere(MARS_RADIUS * (MARS_RADIUS / (altitude + MARS_RADIUS)), 160, 100);
 
     } else {
@@ -1355,7 +1499,8 @@ void draw_closeup_window (void)
       glTranslated(0.0, -(MARS_RADIUS + altitude), 0.0);
       glMultMatrixd(m2); // now in the planetary coordinate system
       glRotated(360.0*simulation_time/MARS_DAY, 0.0, 0.0, 1.0); // to make the planet spin
-      glutMottledSphere(MARS_RADIUS, 160, 100);
+      //glutSolidSphere(MARS_RADIUS, 160, 100);
+	  draw_obj();
 
     }
 
@@ -1373,7 +1518,7 @@ void draw_closeup_window (void)
 
   // Work out drag on lander - if it's high, we will surround the lander with an incandescent glow. Also
   // work out drag on parachute: if it's zero, we will not draw the parachute fully open behind the lander.
-  // Assume high Reynolds number, quadratic drag = -0.5 * rho * v^2 * A * C_d
+  // Assume high Reynolds number, aaadratic drag = -0.5 * rho * v^2 * A * C_d
   lander_drag = 0.5*DRAG_COEF_LANDER*atmospheric_density(position)*M_PI*LANDER_SIZE*LANDER_SIZE*velocity_from_positions.abs2();
   chute_drag = 0.5*DRAG_COEF_CHUTE*atmospheric_density(position)*5.0*2.0*LANDER_SIZE*2.0*LANDER_SIZE*velocity_from_positions.abs2();
 
@@ -2103,6 +2248,10 @@ int main (int argc, char* argv[])
   glutKeyboardFunc(glut_key);
   glutSpecialFunc(glut_special);
 
+  // Load the obj file
+  load_obj("test.obj");
+  
+  
   // The close-up view subwindow
   closeup_window = glutCreateSubWindow(main_window, GAP, GAP, view_width, view_height);
   glDrawBuffer(GL_BACK);

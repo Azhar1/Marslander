@@ -188,6 +188,12 @@ GLfloat plus_z[] = { 0.0, 0.0, 1.0, 0.0 };
 GLfloat top_right[] = { 1.0, 1.0, 1.0, 0.0 };
 GLfloat straight_on[] = { 0.0, 0.0, 1.0, 0.0 };
 
+float *vertexBuffer, *Faces_Triangles, *normals;
+long TotalConnectedPoints;// Stores the total number of connected verteces
+long TotalConnectedTriangles;// Stores the total number of connected triangles
+#define POINTS_PER_VERTEX 3
+#define TOTAL_FLOATS_IN_TRIANGLE 9
+
 #else // extern declarations of those global variables used in lander.cpp
 
 extern bool stabilized_attitude, autopilot_enabled;
