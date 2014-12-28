@@ -34,7 +34,7 @@ void initialize_variables(void){
 	initialized_mid_descent = false;
 }
 
-void autopilot(void)
+void autopilot(bool launch)
 // Autopilot to adjust the engine throttle, parachute and attitude control
 {
 	// INSERT YOUR CODE HERE
@@ -54,158 +54,164 @@ void autopilot(void)
 	altitude_measurement = position.abs() - MARS_RADIUS;
 	climb_rate = (altitude_measurement - old)/delta_t;
 
-	//deploy parachute under 7k and 400 m\s
-	if (safe_to_deploy_parachute()&&altitude_measurement<50000&&climb_rate<0){
-		if (parachute_status == NOT_DEPLOYED)
-		{
-			parachute_status = DEPLOYED;
-			phase = FINAL_DESCENT;
-			//rate_of_descent_change = 1;
-			throttle = 0;
-		}
-	}
 
-	switch (phase)
-	{
+
+	if (!launch){
+		//deploy parachute under 7k and 400 m\s
+		if (safe_to_deploy_parachute() && altitude_measurement<50000 && climb_rate<0){
+			if (parachute_status == NOT_DEPLOYED)
+			{
+				parachute_status = DEPLOYED;
+				phase = FINAL_DESCENT;
+				//rate_of_descent_change = 1;
+				throttle = 0;
+			}
+		}
+		switch (phase)
+		{
 		case LEAVE_ORBIT:
 		{
-			if (fuel < 0.85 || get_ground_speed() < 800){
-				phase = WAIT_300000;
-				throttle = 0;
-				stabilized_attitude_angle = 0;
-				break;
-			}
-			stabilized_attitude_angle = 90;
-			throttle = 1;
+							if (fuel < 0.85 || get_ground_speed() < 800){
+								phase = WAIT_300000;
+								throttle = 0;
+								stabilized_attitude_angle = 0;
+								break;
+							}
+							stabilized_attitude_angle = 90;
+							throttle = 1;
 		}
 
 		case WAIT_300000:
 		{
-			if (altitude_measurement < 300000)
-				phase = SLOW_60pph_800ms;
-			break;
+							if (altitude_measurement < 300000)
+								phase = SLOW_60pph_800ms;
+							break;
 		}
-		
+
 		case SLOW_60pph_800ms:
 		{
-			if (fuel < 0.4 || get_ground_speed() < 800){
-				phase = Reach_7000_400;
-				throttle = 0;
-				stabilized_attitude_angle = 0;
-				break;
-			}
-			stabilized_attitude_angle = 90;
-			throttle = 1;
+								 if (fuel < 0.4 || get_ground_speed() < 800){
+									 phase = Reach_7000_400;
+									 throttle = 0;
+									 stabilized_attitude_angle = 0;
+									 break;
+								 }
+								 stabilized_attitude_angle = 90;
+								 throttle = 1;
 		}
 
 		case Reach_7000_400:
 		{
-			if (initialized_mid_descent == false&&climb_rate < -250 && altitude_measurement < 260000){
-				rate_of_descent_change = (climb_rate + 200) / (altitude_measurement-8000);
-				initialized_mid_descent = true;
-			}
-			if (!initialized_mid_descent)
-				break;
-			if (fuel < 0.15){
-				throttle = 0;
-				break;
-			}
-			double current_target_rate = rate_of_descent_change*(altitude_measurement-8000) - 200;
-			double error = climb_rate - current_target_rate;
-			//negative error: use thruster
-			if (error < 0){
-				//100 m\s = full thrust
-				//gain: -0.1 below 40, -100 above 4000,
-				double gain = -100;
-				double temp_throttle = error / gain;
-				if (temp_throttle>1)
-					temp_throttle = 1;
-				throttle = temp_throttle;
-			}
-			else{
-				throttle = 0;
-			}	
+							   if (initialized_mid_descent == false && climb_rate < -250 && altitude_measurement < 260000){
+								   rate_of_descent_change = (climb_rate + 200) / (altitude_measurement - 8000);
+								   initialized_mid_descent = true;
+							   }
+							   if (!initialized_mid_descent)
+								   break;
+							   if (fuel < 0.15){
+								   throttle = 0;
+								   break;
+							   }
+							   double current_target_rate = rate_of_descent_change*(altitude_measurement - 8000) - 200;
+							   double error = climb_rate - current_target_rate;
+							   //negative error: use thruster
+							   if (error < 0){
+								   //100 m\s = full thrust
+								   //gain: -0.1 below 40, -100 above 4000,
+								   double gain = -100;
+								   double temp_throttle = error / gain;
+								   if (temp_throttle>1)
+									   temp_throttle = 1;
+								   throttle = temp_throttle;
+							   }
+							   else{
+								   throttle = 0;
+							   }
 		}
-		break;
+			break;
 		case FINAL_DESCENT:
 		{
-			if (climb_rate > 0)
-				climb_rate = 0;
-			if (initialized_final_descent==false&&climb_rate < 0&&altitude_measurement<400){
-				double total_speed = sqrt(pow(climb_rate, 2.0) + pow(get_ground_speed(), 2.0));
-				rate_of_descent_change = (total_speed - target_rate_of_desent) / altitude_measurement;
-				initialized_final_descent = true;
-			}
-			if (!initialized_final_descent)
-				break;
-			double current_target_rate = rate_of_descent_change*altitude_measurement - 0.1;
-			double current_speed = sqrt(pow(climb_rate, 2.0) + pow(get_ground_speed(), 2.0));
-			double error = (current_speed - current_target_rate)*-1;
+							  if (climb_rate > 0)
+								  climb_rate = 0;
+							  if (initialized_final_descent == false && climb_rate < 0 && altitude_measurement < 400){
+								  double total_speed = sqrt(pow(climb_rate, 2.0) + pow(get_ground_speed(), 2.0));
+								  rate_of_descent_change = (total_speed - target_rate_of_desent) / altitude_measurement;
+								  initialized_final_descent = true;
+							  }
+							  if (!initialized_final_descent)
+								  break;
+							  double current_target_rate = rate_of_descent_change*altitude_measurement - 0.1;
+							  double current_speed = sqrt(pow(climb_rate, 2.0) + pow(get_ground_speed(), 2.0));
+							  double error = (current_speed - current_target_rate)*-1;
 
-			//angle
-			double ground_speed = get_ground_speed();
-			if (ground_speed < 1){
-				stabilized_attitude_angle = 0;
-				initialized_final_descent = false;
-				phase = TOUCHDOWN;
-			}
-			else
-			{
-				if (climb_rate > -1 && ground_speed > 1)
-					stabilized_attitude_angle = 90;
-				else
-					stabilized_attitude_angle = (int)(90.0 / (1 + ((-1*climb_rate) / ground_speed)));
-			}
-			//negative error: use thruster
-			if (error < 0){
-				//100 m\s = full thrust
-				//gain: -0.1 below 40, -100 above 4000,
-				double gain = -0.025*altitude_measurement;
-				if (gain<-100)
-					gain = -100;
-				if (gain>-1)
-					gain = -1;
-				double temp_throttle = error / gain;
-				if (temp_throttle>1)
-					temp_throttle = 1;
-				throttle = temp_throttle;
-			}
-			else{
-				throttle = 0;
-			}
+							  //angle
+							  double ground_speed = get_ground_speed();
+							  if (ground_speed < 1){
+								  stabilized_attitude_angle = 0;
+								  initialized_final_descent = false;
+								  phase = TOUCHDOWN;
+							  }
+							  else
+							  {
+								  if (climb_rate > -1 && ground_speed > 1)
+									  stabilized_attitude_angle = 90;
+								  else
+									  stabilized_attitude_angle = (int)(90.0 / (1 + ((-1 * climb_rate) / ground_speed)));
+							  }
+							  //negative error: use thruster
+							  if (error < 0){
+								  //100 m\s = full thrust
+								  //gain: -0.1 below 40, -100 above 4000,
+								  double gain = -0.025*altitude_measurement;
+								  if (gain<-100)
+									  gain = -100;
+								  if (gain>-1)
+									  gain = -1;
+								  double temp_throttle = error / gain;
+								  if (temp_throttle>1)
+									  temp_throttle = 1;
+								  throttle = temp_throttle;
+							  }
+							  else{
+								  throttle = 0;
+							  }
 		}
-		break;
+			break;
 		case TOUCHDOWN:
 		{
-			if (initialized_final_descent == false && climb_rate < 0 && altitude_measurement<400){
-				rate_of_descent_change = (climb_rate - target_rate_of_desent) / altitude_measurement;
-				initialized_final_descent = true;
-			}
-			if (!initialized_final_descent)
-				break;
-			double current_target_rate = rate_of_descent_change*altitude_measurement - 0.1;
-			double error = (climb_rate - current_target_rate);
+						  if (initialized_final_descent == false && climb_rate < 0 && altitude_measurement < 400){
+							  rate_of_descent_change = (climb_rate - target_rate_of_desent) / altitude_measurement;
+							  initialized_final_descent = true;
+						  }
+						  if (!initialized_final_descent)
+							  break;
+						  double current_target_rate = rate_of_descent_change*altitude_measurement - 0.1;
+						  double error = (climb_rate - current_target_rate);
 
-			//negative error: use thruster
-			if (error < 0){
-				//100 m\s = full thrust
-				//gain: -0.1 below 40, -100 above 4000,
-				double gain = -0.025*altitude_measurement;
-				if (gain<-100)
-					gain = -100;
-				if (gain>-1)
-					gain = -1;
-				double temp_throttle = error / gain;
-				if (temp_throttle>1)
-					temp_throttle = 1;
-				throttle = temp_throttle;
-			}
-			else{
-				throttle = 0;
-			}
+						  //negative error: use thruster
+						  if (error < 0){
+							  //100 m\s = full thrust
+							  //gain: -0.1 below 40, -100 above 4000,
+							  double gain = -0.025*altitude_measurement;
+							  if (gain<-100)
+								  gain = -100;
+							  if (gain>-1)
+								  gain = -1;
+							  double temp_throttle = error / gain;
+							  if (temp_throttle>1)
+								  temp_throttle = 1;
+							  throttle = temp_throttle;
+						  }
+						  else{
+							  throttle = 0;
+						  }
 		}
 		default:
 			break;
+		}
+	}
+	else{
+
 	}
 }
 
