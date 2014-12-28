@@ -914,7 +914,7 @@ void display_help_prompt (void)
   glPopMatrix();
 }
 
-float* calculateNormal(float *coord1, float *coord2, float *coord3)
+std::vector<float> calculateNormal(float *coord1, float *coord2, float *coord3)
 {
 	/* calculate Vector1 and Vector2 */
 	float va[3], vb[3], vr[3], val;
@@ -934,7 +934,7 @@ float* calculateNormal(float *coord1, float *coord2, float *coord3)
 	/* normalization factor */
 	val = sqrt(vr[0] * vr[0] + vr[1] * vr[1] + vr[2] * vr[2]);
 
-	float norm[3];
+	std::vector<float> norm(3);
 	norm[0] = vr[0] / val;
 	norm[1] = vr[1] / val;
 	norm[2] = vr[2] / val;
@@ -1013,7 +1013,7 @@ int load_obj(char* filename)
 				float coord1[3] = { Faces_Triangles[triangle_index], Faces_Triangles[triangle_index + 1], Faces_Triangles[triangle_index + 2] };
 				float coord2[3] = { Faces_Triangles[triangle_index + 3], Faces_Triangles[triangle_index + 4], Faces_Triangles[triangle_index + 5] };
 				float coord3[3] = { Faces_Triangles[triangle_index + 6], Faces_Triangles[triangle_index + 7], Faces_Triangles[triangle_index + 8] };
-				float *norm = calculateNormal(coord1, coord2, coord3);
+				std::vector<float> norm = calculateNormal(coord1, coord2, coord3);
 
 				tCounter = 0;
 				for (int i = 0; i < POINTS_PER_VERTEX; i++)
@@ -1095,6 +1095,7 @@ void draw_orbital_window (void)
   glPopMatrix();
 #else
   glColor3f(0.63, 0.33, 0.22);
+  glRotated(360.0*simulation_time / MARS_DAY, 0.0, 0.0, 1.0);
   draw_obj();
 #endif
   // Draw previous lander positions in cyan that fades with time
@@ -1385,10 +1386,11 @@ void draw_closeup_window (void)
     // nearby, to get the fog calculations correct in all OpenGL implementations.
     glBindTexture(GL_TEXTURE_2D, terrain_texture);
     if (do_texture) glEnable(GL_TEXTURE_2D);
-    glNormal3d(0.0, 1.0, 0.0);
+	glNormal3d(0.0, 1.0, 0.0);
     glPushMatrix();
     glRotated(terrain_angle, 0.0, 1.0, 0.0);
     glBegin(GL_QUADS);
+	draw_obj();
     glTexCoord2f(1.0 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(ground_plane_size, -altitude, ground_plane_size);      
     glTexCoord2f(1.0 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(ground_plane_size, -altitude, 0.0);
     glTexCoord2f(0.5 + terrain_offset_x, 0.5 + terrain_offset_y); glVertex3d(0.0, -altitude, 0.0);      
@@ -1407,6 +1409,7 @@ void draw_closeup_window (void)
 	glTexCoord2f(0.0 + terrain_offset_x, 1.0 + terrain_offset_y); glVertex3d(-ground_plane_size, -altitude, ground_plane_size);
     glEnd();
     glPopMatrix();
+//	draw_obj();
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
 
