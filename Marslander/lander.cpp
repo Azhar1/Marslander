@@ -23,6 +23,12 @@ double climb_rate = 1;
 double altitude_measurement=-1;
 bool initialized_final_descent = false;
 bool initialized_mid_descent = false;
+bool launch = false;
+bool not_initialized_launch = true;
+double rate_of_climb_change = -1;
+double rate_of_speed_change = -1;
+double initial_climb_rate = 0;
+double initial_altitude = 0;
 
 void initialize_variables(void){
 	phase = LEAVE_ORBIT;
@@ -32,9 +38,10 @@ void initialize_variables(void){
 	altitude_measurement = -1;
 	initialized_final_descent = false;
 	initialized_mid_descent = false;
+	not_initialized_launch = true;
 }
 
-void autopilot(bool launch)
+void autopilot()
 // Autopilot to adjust the engine throttle, parachute and attitude control
 {
 	// INSERT YOUR CODE HERE
@@ -211,7 +218,44 @@ void autopilot(bool launch)
 		}
 	}
 	else{
+		fuel = 1;
+		if (not_initialized_launch&&climb_rate!=0){
+			double target_speed = sqrt((GRAVITY*MARS_MASS) / (1.15*MARS_RADIUS*(UNLOADED_LANDER_MASS + FUEL_CAPACITY*FUEL_DENSITY)));
+			initial_altitude = altitude_measurement;
+			rate_of_climb_change = (climb_rate) / (0.15*MARS_RADIUS-altitude_measurement);
+			initial_climb_rate = climb_rate;
+			rate_of_speed_change = (target_speed) / (0.15*MARS_RADIUS-altitude_measurement);
+			not_initialized_launch = false;
+		}
+		if (not_initialized_launch){
+			return;
+		}
+		double current_target_speed = rate_of_speed_change*(altitude_measurement - initial_altitude);
+		double current_target_climb = initial_climb_rate - rate_of_climb_change*(altitude_measurement - initial_altitude);
+		double herror = get_ground_speed() - current_target_speed; //+ too fast, - too slow
+		double verror = climb_rate- current_target_climb; //+ too fast - too slow
 
+		double alpha = asin(verror / sqrt(verror*verror + herror*herror));
+		if (verror > 0){
+			alpha = alpha - 180.0;
+		}
+		double alpha_diff = stabilized_attitude_angle - alpha;
+		if (alpha_diff > 0)
+			stabilized_attitude_angle -= 2;
+		else
+			stabilized_attitude_angle += 2;
+
+		double error =  abs(herror);
+		if (verror < 0)
+			error = sqrt(verror*verror + herror*herror);
+
+		//100 m\s = full thrust
+		//gain: -0.1 below 40, -100 above 4000,
+		double gain = 100;
+		double temp_throttle = error / gain;
+		if (temp_throttle>1)
+			temp_throttle = 1;
+		throttle = temp_throttle;
 	}
 }
 
@@ -333,6 +377,7 @@ void initialize_simulation (void)
     parachute_status = NOT_DEPLOYED;
     stabilized_attitude = false;
     autopilot_enabled = false;
+	launch = false;
 
 	stabilized_attitude_angle = 0;
 
@@ -349,6 +394,7 @@ void initialize_simulation (void)
     stabilized_attitude = true;
     autopilot_enabled = false;
 	stabilized_attitude_angle = 0;
+	launch = false;
     
 	initialize_variables();
 	break;
@@ -363,6 +409,7 @@ void initialize_simulation (void)
     stabilized_attitude = false;
     autopilot_enabled = false;
 	stabilized_attitude_angle = 0;
+	launch = false;
 
 	initialize_variables();
 	break;
@@ -377,6 +424,7 @@ void initialize_simulation (void)
     stabilized_attitude = false;
     autopilot_enabled = false;
 	stabilized_attitude_angle = 0;
+	launch = true;
     
 	initialize_variables();
 	break;
@@ -391,6 +439,7 @@ void initialize_simulation (void)
     stabilized_attitude = false;
     autopilot_enabled = false;
 	stabilized_attitude_angle = 0;
+	launch = false;
 
 	initialize_variables();
 	break;
@@ -405,6 +454,7 @@ void initialize_simulation (void)
     stabilized_attitude = true;
     autopilot_enabled = false;
 	stabilized_attitude_angle = 0;
+	launch = false;
     
 	initialize_variables();
 	break;
@@ -421,6 +471,7 @@ void initialize_simulation (void)
 			stabilized_attitude = false;
 			autopilot_enabled = false;
 			stabilized_attitude_angle = 0;
+			launch = false;
 
 			initialize_variables();
 			break;
